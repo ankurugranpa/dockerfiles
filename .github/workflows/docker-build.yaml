@@ -28,4 +28,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ankuru/github-actions-test:lates
+          tags: ankuru/python3.9-whisper-nonedel:lates
