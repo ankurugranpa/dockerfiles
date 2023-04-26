@@ -1,6 +1,5 @@
 FROM debian:buster-slim
 
-RUN echo "now buiilding..."
 
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install wget xz-utils ffmpeg git curl -y
