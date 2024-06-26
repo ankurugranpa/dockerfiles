@@ -1,0 +1,17 @@
+Bootstrap: docker
+From: ankuru/cu11.0-devel-cpp
+
+%post
+    apt-get update && apt-get install -y locales
+    echo "export PATH=/home/user/.nodebrew/current/bin:$PATH" >> /environment
+    echo "export SHELL=/usr/bin/zsh" >> /environment
+    echo "export ZPLUG_HOME=/home/user/.zplug" >> /environment
+    locale-gen ja_JP.UTF-8
+    update-locale LANG=ja_JP.UTF-8
+
+%runscript
+  exec /usr/bin/zsh
+
+%environment
+    export LANG=ja_JP.UTF-8
+    export LC_ALL=ja_JP.UTF-8
