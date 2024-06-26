@@ -17,7 +17,6 @@ RUN apt-get update && apt-get upgrade -y \
     lua5.1 \
     luarocks \
     make \
-    cmake \
     gettext \
     build-essential \
     libbz2-dev \
@@ -35,6 +34,11 @@ RUN apt-get update && apt-get upgrade -y \
     libeigen3-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# install cmake 
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.29.6/cmake-3.29.6-linux-x86_64.sh \
+    && chmod +x cmake-3.29.6-linux-x86_64.sh \
+    && ./cmake-3.29.6-linux-x86_64.sh --skip-license --prefix=/usr/local
 
 # install neovim
 RUN git clone  --depth 1 https://github.com/neovim/neovim \
