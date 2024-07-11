@@ -7,7 +7,7 @@ WORKDIR /src
 RUN pip install poetry 
 
 COPY pyproject.toml* poetry.lock* ./
-RUN poetry config virtualenvs.in-project true
+RUN poetry config virtualenvs.in-project false
 RUN if [ -f pyproject.toml ]; then poetry install --no-root; fi
 
 COPY ./discord_memo /src/discord_memo
