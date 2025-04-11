@@ -61,7 +61,7 @@ jobs:
           name: Singularity Build ${{ github.run_number }}
 
       - name: Upload all .sif files to Release
-              uses: softprops/action-gh-release@v2
-              with:
-                tag_name: sif-release-${{ github.run_number }}
-                files: ${{ steps.build-sif.outputs.sif_list }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: sif-release-${{ github.run_number }}
+          files: ${{ steps.build-sif.outputs.sif_list }}
