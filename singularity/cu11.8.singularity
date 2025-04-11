@@ -1,4 +1,4 @@
-# gpu server向けメイン環境
+# gpu server向けメイン環境_fix
 Bootstrap: docker
 From: ankuru/cu11.8-devel-cpp-env:latet
 
