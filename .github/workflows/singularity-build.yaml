@@ -1,0 +1,65 @@
+name: singularity-build
+
+on:
+  push:
+    paths:
+      - '**/*.singularity'
+  pull_request:
+    paths:
+      - '**/*.singularity'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go 1.13
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.13'
+
+      - name: Setup Singularity
+        uses: eWaterCycle/setup-singularity@v7
+        with:
+          singularity-version: 3.8.3
+
+      - name: Find and build all .singularity files
+        id: build-sif
+        run: |
+          git fetch origin main
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD | grep '\.singularity$' || true)
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No .singularity files changed"
+            exit 0
+          fi
+
+          SIF_LIST=""
+          for FILE in $CHANGED_FILES; do
+            BASENAME="${FILE%.singularity}"
+            SIF="${BASENAME}.sif"
+            echo "Building $SIF from $FILE"
+            singularity build "$SIF" "$FILE"
+            SIF_LIST="$SIF_LIST $SIF"
+          done
+
+          echo "sif_list=$SIF_LIST" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: sif-release-${{ github.run_number }}
+          name: Singularity Build ${{ github.run_number }}
+
+      - name: Upload all .sif files to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: sif-release-${{ github.run_number }}
+          files: ${{ steps.build-sif.outputs.sif_list }}
+
