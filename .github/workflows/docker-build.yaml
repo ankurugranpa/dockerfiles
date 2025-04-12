@@ -37,7 +37,7 @@ jobs:
         run: |
           git fetch origin master
   
-          FILES=$(git diff --name-only --diff-filter=AM origin/master | grep '/Dockerfile$' || true)
+          FILES=$(git diff --name-only --diff-filter=AM HEAD~ | grep '/Dockerfile$' || true)
 
           if [ -z "$FILES" ]; then
             echo "No Dockerfiles changed."
