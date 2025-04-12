@@ -1,23 +1,8 @@
-name: singularity-build
-
-on:
-  push:
-    tags:
-      - '*'
-
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    container:  
-      image: quay.io/singularity/singularity:v3.8.3
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -27,49 +12,49 @@ jobs:
         run: |
           CURRENT_TAG="${GITHUB_REF##*/}"
           TAGS=($(git tag --sort=-creatordate | head -n 2))
-
           if [ "${#TAGS[@]}" -lt 2 ]; then
-            echo "No previous tag to diff against"
             echo "changed_files=" >> $GITHUB_OUTPUT
             exit 0
           fi
-
           PREV_TAG=${TAGS[1]}
-          echo "Current tag: $CURRENT_TAG"
-          echo "Previous tag: $PREV_TAG"
-
           CHANGED_FILES=$(git diff --name-only "$PREV_TAG" "$CURRENT_TAG" | grep '\.singularity$' || true)
-
           if [ -z "$CHANGED_FILES" ]; then
-            echo "No .singularity files changed"
             echo "changed_files=" >> $GITHUB_OUTPUT
             exit 0
           fi
-
-          echo "Changed .singularity files:"
-          echo "$CHANGED_FILES"
           echo "changed_files=$(echo $CHANGED_FILES | tr '\n' ' ')" >> $GITHUB_OUTPUT
 
-      - name: Build changed .singularity files (in Docker)
-        id: build-sif
+      - name: Build inside privileged Docker
         if: steps.diff.outputs.changed_files != ''
         run: |
-          mkdir -p output
-          for FILE in ${{ steps.diff.outputs.changed_files }}; do
-            BASENAME="${FILE%.singularity}"
-            SIF="${BASENAME}.sif"
-            echo "Building $SIF from $FILE"
-            singularity build "$SIF" "$FILE"
-            SIF_LIST="$SIF_LIST $SIF"
-          done
+          docker run --rm --privileged \
+            -v $PWD:/workspace \
+            -w /workspace \
+            quay.io/singularity/singularity:v3.8.3 \
+            /bin/sh -c '
+              set -e
+              for FILE in ${{ steps.diff.outputs.changed_files }}; do
+                BASENAME="${FILE%.singularity}"
+                SIF="${BASENAME}.sif"
+                echo "Building $SIF from $FILE"
+                singularity build "$SIF" "$FILE"
+                SIF_LIST="$SIF_LIST $SIF"
+              done
+              echo "sif_list=$SIF_LIST" >> /workspace/sif_list.txt
+            '
 
-          echo "sif_list=$SIF_LIST" >> $GITHUB_OUTPUT
+      - name: Export sif_list
+        id: sif
+        run: |
+          if [ -f sif_list.txt ]; then
+            cat sif_list.txt >> $GITHUB_OUTPUT
+          fi
 
       - name: Create GitHub Release
-        if: steps.build-sif.outputs.sif_list != ''
+        if: steps.sif.outputs.sif_list != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          files: ${{ steps.build-sif.outputs.sif_list }}
+          files: ${{ steps.sif.outputs.sif_list }}
 
