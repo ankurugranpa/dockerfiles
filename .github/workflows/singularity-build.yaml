@@ -30,25 +30,46 @@ jobs:
             exit 0
           fi
           echo "changed_files=$(echo $CHANGED_FILES | tr '\n' ' ')" >> $GITHUB_OUTPUT
-
       - name: Build inside privileged Docker
         if: steps.diff.outputs.changed_files != ''
         run: |
+          export CHANGED_FILES="${{ steps.diff.outputs.changed_files }}"
           docker run --rm --privileged \
-            -v $PWD:/workspace \
+            -v "$PWD":/workspace \
             -w /workspace \
+            -e CHANGED_FILES \
             quay.io/singularity/singularity:v3.8.3 \
             /bin/sh -c '
               set -e
-              for FILE in ${{ steps.diff.outputs.changed_files }}; do
+              for FILE in $CHANGED_FILES; do
                 BASENAME="${FILE%.singularity}"
                 SIF="${BASENAME}.sif"
                 echo "Building $SIF from $FILE"
                 singularity build "$SIF" "$FILE"
                 SIF_LIST="$SIF_LIST $SIF"
               done
-              echo "sif_list=$SIF_LIST" >> /workspace/sif_list.txt
+              echo "sif_list=$SIF_LIST" > /workspace/sif_list.txt
             '
+
+
+            # - name: Build inside privileged Docker
+            #   if: steps.diff.outputs.changed_files != ''
+            #   run: |
+            #     docker run --rm --privileged \
+            #       -v $PWD:/workspace \
+            #       -w /workspace \
+            #       quay.io/singularity/singularity:v3.8.3 \
+            #       /bin/sh -c '
+            #         set -e
+            #         for FILE in ${{ steps.diff.outputs.changed_files }}; do
+            #           BASENAME="${FILE%.singularity}"
+            #           SIF="${BASENAME}.sif"
+            #           echo "Building $SIF from $FILE"
+            #           singularity build "$SIF" "$FILE"
+            #           SIF_LIST="$SIF_LIST $SIF"
+            #         done
+            #         echo "sif_list=$SIF_LIST" >> /workspace/sif_list.txt
+            #       '
 
       - name: Export sif_list
         id: sif
