@@ -42,7 +42,7 @@ jobs:
             SIF="${BASENAME}.sif"
             echo "Building $SIF from $FILE"
             docker run --rm \
-              --privileged \  # ← ⚠️ これが通らない場合は要対処
+              --privileged \  
               -v $(pwd):/mnt \
               ${{ secrets.DOCKERHUB_USERNAME }}/singularity-builder:latest \
               singularity build /mnt/$SIF /mnt/$FILE
