@@ -23,6 +23,7 @@ jobs:
 
       - name: Get changed .singularity files since last tag
         id: diff
+        shell: bash
         run: |
           CURRENT_TAG="${GITHUB_REF##*/}"
           TAGS=($(git tag --sort=-creatordate | head -n 2))
