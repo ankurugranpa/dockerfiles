@@ -70,7 +70,7 @@ jobs:
             BASENAME="${FILE%.singularity}"
             SIF="${BASENAME}.sif"
             echo "Building $SIF from $FILE"
-            singularity build "$SIF" "$FILE"
+            singularity build --fakeroot "$SIF" "$FILE"
             SIF_LIST="$SIF_LIST $SIF"
           done
 
