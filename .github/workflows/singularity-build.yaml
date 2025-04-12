@@ -31,60 +31,23 @@ jobs:
           fi
           echo "changed_files=$(echo $CHANGED_FILES | tr '\n' ' ')" >> $GITHUB_OUTPUT
 
-      - name: Build inside Docker with Singularity installed manually
+
+
+      - name: Build .sif files from changed .singularity
         if: steps.diff.outputs.changed_files != ''
         run: |
-          export CHANGED_FILES="${{ steps.diff.outputs.changed_files }}"
-          docker run --rm --privileged \
-            -e CHANGED_FILES="$CHANGED_FILES" \
-            -v "$PWD":/workspace \
-            -w /workspace \
-            ubuntu:22.04 /bin/bash -c '
-              set -eux
-
-              # Install dependencies
-              apt-get update
-              DEBIAN_FRONTEND=noninteractive apt-get install -y \
-                build-essential \
-                libseccomp-dev \
-                pkg-config \
-                squashfs-tools \
-                cryptsetup \
-                curl \
-                git \
-                uuid-dev \
-                libgpgme-dev \
-                libssl-dev \
-                libglib2.0-dev \
-                zlib1g-dev \
-                wget \
-                gnupg \
-                lsb-release
-
-              # Install Go
-              GO_VERSION=1.13
-              curl -LO https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz
-              rm -rf /usr/local/go && tar -C /usr/local -xzf go$GO_VERSION.linux-amd64.tar.gz
-              export PATH=$PATH:/usr/local/go/bin
-              echo "Go version: $(go version)"
-
-              # Build and install Singularity
-              SINGULARITY_VERSION=3.8.3
-              wget https://github.com/sylabs/singularity/releases/download/v$SINGULARITY_VERSION/singularity-$SINGULARITY_VERSION.tar.gz
-              tar -xzf singularity-$SINGULARITY_VERSION.tar.gz
-              cd singularity-$SINGULARITY_VERSION
-              ./mconfig && make -C builddir && make -C builddir install
-              cd /workspace
-
-              # Build .sif files
-              for FILE in $CHANGED_FILES; do
-                BASENAME="${FILE%.singularity}"
-                SIF="${BASENAME}.sif"
-                echo "Building $SIF from $FILE"
-                singularity build "$SIF" "$FILE"
-                echo "$SIF" >> sif_list.txt
-              done
-            '
+          CHANGED_FILES="${{ steps.diff.outputs.changed_files }}"
+          for FILE in $CHANGED_FILES; do
+            BASENAME="${FILE%.singularity}"
+            SIF="${BASENAME}.sif"
+            echo "Building $SIF from $FILE"
+            docker run --rm \
+              --privileged \  # ← ⚠️ これが通らない場合は要対処
+              -v $(pwd):/mnt \
+              ${{ secrets.DOCKERHUB_USERNAME }}/singularity-builder:latest \
+              singularity build /mnt/$SIF /mnt/$FILE
+            echo "$SIF" >> sif_list.txt
+          done
 
       - name: Export sif_list
         id: sif
