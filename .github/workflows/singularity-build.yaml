@@ -5,7 +5,6 @@ on:
     tags:
       - '*'
 
-
 permissions:
   contents: write
 
@@ -13,30 +12,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    container:  
+      image: quay.io/singularity/singularity:v3.8.3
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-
-      - name: Setup Go 1.13
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.13'
-
-      - name: Setup Singularity
-        uses: eWaterCycle/setup-singularity@v7
-        with:
-          singularity-version: 3.8.3
-
       - name: Get changed .singularity files since last tag
         id: diff
         run: |
-          # 現在のタグ名
           CURRENT_TAG="${GITHUB_REF##*/}"
-
-          # 直近2つのタグを取得（新しい順）
           TAGS=($(git tag --sort=-creatordate | head -n 2))
 
           if [ "${#TAGS[@]}" -lt 2 ]; then
@@ -61,39 +49,20 @@ jobs:
           echo "$CHANGED_FILES"
           echo "changed_files=$(echo $CHANGED_FILES | tr '\n' ' ')" >> $GITHUB_OUTPUT
 
-
-      - name: Build changed .singularity files
+      - name: Build changed .singularity files (in Docker)
         id: build-sif
         if: steps.diff.outputs.changed_files != ''
         run: |
+          mkdir -p output
           for FILE in ${{ steps.diff.outputs.changed_files }}; do
             BASENAME="${FILE%.singularity}"
             SIF="${BASENAME}.sif"
             echo "Building $SIF from $FILE"
-            singularity build --fakeroot "$SIF" "$FILE"
+            singularity build "$SIF" "$FILE"
             SIF_LIST="$SIF_LIST $SIF"
           done
 
           echo "sif_list=$SIF_LIST" >> $GITHUB_OUTPUT
-          
-          #       - name: Find and build all .singularity files
-          #         id: build-sif
-          #         run: |
-          #           FILES=(`git diff HEAD^ --name-only|tr '\n' ' ' `)
-          #           for FILE in ${FILES[@]}; do
-          #             BASENAME="${FILE%.singularity}"
-          #             SIF="${BASENAME}.sif"
-          #             echo "Building $SIF from $FILE"
-          #             singularity build "$SIF" "$FILE"
-          #             SIF_LIST="$SIF_LIST $SIF"
-          #           done
-          # 
-          #           if [ -z "$SIF_LIST" ]; then
-          #             echo "No .singularity files changed"
-          #             exit 0
-          #           fi
-          # 
-          #           echo "sif_list=$SIF_LIST" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         if: steps.build-sif.outputs.sif_list != ''
@@ -102,3 +71,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           files: ${{ steps.build-sif.outputs.sif_list }}
+
