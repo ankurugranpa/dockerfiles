@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - '**/Dockerfile'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -35,7 +36,8 @@ jobs:
       - name: Find changed Dockerfiles and build/push
         run: |
           git fetch origin master
-          FILES=$(git diff --name-only origin/master...HEAD | grep '/Dockerfile$' || true)
+          # FILES=$(git diff --name-only origin/master...HEAD | grep '/Dockerfile$' || true)
+          FILES=$(git diff --name-only origin/master | grep '/Dockerfile$' || true)
 
           if [ -z "$FILES" ]; then
             echo "No Dockerfiles changed."
