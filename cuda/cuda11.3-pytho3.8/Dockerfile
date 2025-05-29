@@ -63,7 +63,7 @@ RUN curl -L https://raw.githubusercontent.com/libapps/libapps-mirror/main/hterm/
     && mv osc52.sh /usr/local/bin/clip
 
 # set zsh
-ENV SHELL /usr/bin/zsh 
+ENV SHELL=/usr/bin/zsh 
 RUN zsh
 RUN chsh -s /usr/bin/zsh 
 
@@ -76,7 +76,7 @@ WORKDIR /home/docker
 
 # install node
 RUN curl -L git.io/nodebrew | perl - setup
-ENV PATH=$HOME/.nodebrew/current/bin:$PATH
+ENV PATH=~/.nodebrew/current/bin:$PATH
 RUN ~/.nodebrew/current/bin/nodebrew install-binary 16.20.2 \
     && ~/.nodebrew/current/bin/nodebrew use v16.20.2
 
